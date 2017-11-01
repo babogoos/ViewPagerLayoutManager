@@ -30,16 +30,30 @@ public class CenterScrollListener extends RecyclerView.OnScrollListener {
                 }
                 mAutoSet = false;
             } else {
-                final int dx;
-                dx = ((ViewPagerLayoutManager) layoutManager).getOffsetCenterView();
-                if (dx != 0) {
-                    recyclerView.smoothScrollBy(dx, 0);
-                    mAutoSet = true;
-                } else {
-                    if (onPageChangeListener != null) {
-                        onPageChangeListener.onPageSelected(((ViewPagerLayoutManager) layoutManager).getCurrentPosition());
+                if (((ViewPagerLayoutManager) layoutManager).orientation == ViewPagerLayoutManager.HORIZONTAL_MODE) {
+                    final int dx;
+                    dx = ((ViewPagerLayoutManager) layoutManager).getOffsetCenterView();
+                    if (dx != 0) {
+                        recyclerView.smoothScrollBy(dx, 0);
+                        mAutoSet = true;
+                    } else {
+                        if (onPageChangeListener != null) {
+                            onPageChangeListener.onPageSelected(((ViewPagerLayoutManager) layoutManager).getCurrentPosition());
+                        }
+                        mAutoSet = false;
                     }
-                    mAutoSet = false;
+                } else {
+                    final int dy;
+                    dy = ((ViewPagerLayoutManager) layoutManager).getOffsetCenterView();
+                    if (dy != 0) {
+                        recyclerView.smoothScrollBy(dy, 0);
+                        mAutoSet = true;
+                    } else {
+                        if (onPageChangeListener != null) {
+                            onPageChangeListener.onPageSelected(((ViewPagerLayoutManager) layoutManager).getCurrentPosition());
+                        }
+                        mAutoSet = false;
+                    }
                 }
             }
         } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING || newState == RecyclerView.SCROLL_STATE_SETTLING) {

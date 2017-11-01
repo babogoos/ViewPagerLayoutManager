@@ -16,16 +16,18 @@ import com.rouchuan.ElevateScaleLayoutManager;
 import com.rouchuan.GalleryLayoutManager;
 import com.rouchuan.RotateLayoutManager;
 import com.rouchuan.ScaleLayoutManager;
+import com.rouchuan.VerticalScaleLayoutManger;
 
 import rouchuan.customlayoutmanager.CenterScrollListener;
 
 public class MainActivity extends AppCompatActivity {
-    private final static int CIRCLE = 0;
+    private final static int VERTICAL_SCALE = 0;
     private final static int SCROLL_SCALE = 1;
     private final static int CIRCLE_SCALE = 2;
     private final static int GALLERY = 3;
     private final static int ElE_SCALE = 4;
     private final static int ROTATE = 5;
+    private final static int CIRCLE = 6;
 
     private int mode = -1;
     private RecyclerView recyclerView;
@@ -35,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private GalleryLayoutManager galleryLayoutManager;
     private ElevateScaleLayoutManager elevateScaleLayoutManager;
     private RotateLayoutManager rotateLayoutManager;
+    private VerticalScaleLayoutManger verticalScaleLayoutManger;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         circleLayoutManager = new CircleLayoutManager();
         circleScaleLayoutManager = new CircleScaleLayoutManager();
         scaleLayoutManager = new ScaleLayoutManager(Dp2px(10));
+        verticalScaleLayoutManger = new VerticalScaleLayoutManger(Dp2px(10));
         galleryLayoutManager = new GalleryLayoutManager(Dp2px(10));
         elevateScaleLayoutManager = new ElevateScaleLayoutManager(Dp2px(-100));
         rotateLayoutManager = new RotateLayoutManager(Dp2px(50), 180);
@@ -75,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void determineLayoutManager() {
         mode++;
-        if (mode == 6) mode = 0;
+        if (mode == 7) mode = 0;
         switch (mode) {
             case CIRCLE:
                 changeAndToast(circleLayoutManager, "CircleLayoutManager");
@@ -94,6 +98,9 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case ROTATE:
                 changeAndToast(rotateLayoutManager, "RotateLayoutManager");
+                break;
+            case VERTICAL_SCALE:
+                changeAndToast(verticalScaleLayoutManger, "VerticalScaleLayoutManger");
                 break;
         }
     }

@@ -20,10 +20,13 @@ public abstract class ViewPagerLayoutManager extends RecyclerView.LayoutManager 
     protected int mDecoratedChildWidth;
     protected int mDecoratedChildHeight;
 
+    public static final int VERTICAL_MODE = 1, HORIZONTAL_MODE = 2;
+
     //Properties
     protected int startLeft;
     protected int startTop;
     protected float offset; //The delta of property which will change when scroll
+    protected int orientation = HORIZONTAL_MODE;
 
     private boolean shouldReverseLayout;
     private int mPendingScrollPosition = NO_POSITION;
@@ -59,6 +62,12 @@ public abstract class ViewPagerLayoutManager extends RecyclerView.LayoutManager 
 
     public ViewPagerLayoutManager(boolean shouldReverseLayout) {
         this.shouldReverseLayout = shouldReverseLayout;
+        setAutoMeasureEnabled(true);
+    }
+
+    public ViewPagerLayoutManager(boolean shouldReverseLayout, int orientation) {
+        this.shouldReverseLayout = shouldReverseLayout;
+        this.orientation = orientation;
         setAutoMeasureEnabled(true);
     }
 
@@ -187,78 +196,188 @@ public abstract class ViewPagerLayoutManager extends RecyclerView.LayoutManager 
     }
 
     @Override
-    public int computeHorizontalScrollOffset(RecyclerView.State state) {
-        if (getChildCount() == 0) {
-            return 0;
-        }
+    public int computeVerticalScrollOffset(RecyclerView.State state) {
+        if (this.orientation == VERTICAL_MODE) {
+            if (getChildCount() == 0) {
+                return 0;
+            }
 
-        if (!mSmoothScrollbarEnabled) {
+            if (!mSmoothScrollbarEnabled) {
+                return !shouldReverseLayout ?
+                        getCurrentPositionInternal() : getItemCount() - getCurrentPositionInternal() - 1;
+            }
+
+            return !shouldReverseLayout ? (int) offset : (int) (Math.abs(getMinOffset()) + offset);
+        } else {
+            return super.computeVerticalScrollOffset(state);
+        }
+    }
+
+    @Override
+    public int computeVerticalScrollExtent(RecyclerView.State state) {
+        if (this.orientation == VERTICAL_MODE) {
+            if (getChildCount() == 0) {
+                return 0;
+            }
+
+            if (!mSmoothScrollbarEnabled) {
+                return 1;
+            }
+
             return !shouldReverseLayout ?
-                    getCurrentPositionInternal() : getItemCount() - getCurrentPositionInternal() - 1;
+                    (int) (getMaxOffset() / getItemCount()) : (int) Math.abs(getMinOffset() / getItemCount());
+        } else {
+            return super.computeVerticalScrollExtent(state);
         }
+    }
 
-        return !shouldReverseLayout ? (int) offset : (int) (Math.abs(getMinOffset()) + offset);
+    @Override
+    public int computeVerticalScrollRange(RecyclerView.State state) {
+        if (this.orientation == VERTICAL_MODE) {
+            if (getChildCount() == 0) {
+                return 0;
+            }
+
+            if (!mSmoothScrollbarEnabled) {
+                return getItemCount();
+            }
+
+            return !shouldReverseLayout ? (int) getMaxOffset() : (int) Math.abs(getMinOffset());
+        } else {
+         return super.computeVerticalScrollRange(state);
+        }
+    }
+
+    @Override
+    public int computeHorizontalScrollOffset(RecyclerView.State state) {
+        if (this.orientation == HORIZONTAL_MODE) {
+
+            if (getChildCount() == 0) {
+                return 0;
+            }
+
+            if (!mSmoothScrollbarEnabled) {
+                return !shouldReverseLayout ?
+                        getCurrentPositionInternal() : getItemCount() - getCurrentPositionInternal() - 1;
+            }
+
+            return !shouldReverseLayout ? (int) offset : (int) (Math.abs(getMinOffset()) + offset);
+        } else {
+            return super.computeHorizontalScrollOffset(state);
+        }
     }
 
     @Override
     public int computeHorizontalScrollExtent(RecyclerView.State state) {
-        if (getChildCount() == 0) {
-            return 0;
-        }
+        if (this.orientation == HORIZONTAL_MODE) {
 
-        if (!mSmoothScrollbarEnabled) {
-            return 1;
-        }
+            if (getChildCount() == 0) {
+                return 0;
+            }
 
-        return !shouldReverseLayout ?
-                (int) (getMaxOffset() / getItemCount()) : (int) Math.abs(getMinOffset() / getItemCount());
+            if (!mSmoothScrollbarEnabled) {
+                return 1;
+            }
+
+            return !shouldReverseLayout ?
+                    (int) (getMaxOffset() / getItemCount()) : (int) Math.abs(getMinOffset() / getItemCount());
+        } else {
+            return super.computeHorizontalScrollExtent(state);
+        }
     }
 
     @Override
     public int computeHorizontalScrollRange(RecyclerView.State state) {
-        if (getChildCount() == 0) {
-            return 0;
-        }
+        if (this.orientation == HORIZONTAL_MODE) {
 
-        if (!mSmoothScrollbarEnabled) {
-            return getItemCount();
-        }
+            if (getChildCount() == 0) {
+                return 0;
+            }
 
-        return !shouldReverseLayout ? (int) getMaxOffset() : (int) Math.abs(getMinOffset());
+            if (!mSmoothScrollbarEnabled) {
+                return getItemCount();
+            }
+
+            return !shouldReverseLayout ? (int) getMaxOffset() : (int) Math.abs(getMinOffset());
+        } else {
+            return super.computeHorizontalScrollRange(state);
+        }
+    }
+
+    @Override
+    public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
+        if (this.orientation == VERTICAL_MODE) {
+            if (getChildCount() == 0 || dy == 0) {
+                return 0;
+            }
+
+            int willScroll = dy;
+
+            float realDx = dy / getDistanceRatio();
+            float targetOffset = offset + realDx;
+
+            //handle the boundary
+            if (!enableEndlessScroll && targetOffset < getMinOffset()) {
+                willScroll = 0;
+            } else if (!enableEndlessScroll && targetOffset > getMaxOffset()) {
+                willScroll = (int) ((getMaxOffset() - offset) * getDistanceRatio());
+            }
+
+            realDx = willScroll / getDistanceRatio();
+
+            offset += realDx;
+
+            //re-calculate the rotate x,y of each items
+            for (int i = 0; i < getChildCount(); i++) {
+                View scrap = getChildAt(i);
+                float delta = propertyChangeWhenScroll(scrap) - realDx;
+                layoutScrap(scrap, delta);
+            }
+
+            layoutItems(recycler, state);
+
+            return willScroll;
+        } else {
+            return super.scrollVerticallyBy(dy, recycler, state);
+        }
     }
 
     @Override
     public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
-        if (getChildCount() == 0 || dx == 0) {
-            return 0;
+        if (this.orientation == HORIZONTAL_MODE) {
+            if (getChildCount() == 0 || dx == 0) {
+                return 0;
+            }
+
+            int willScroll = dx;
+
+            float realDx = dx / getDistanceRatio();
+            float targetOffset = offset + realDx;
+
+            //handle the boundary
+            if (!enableEndlessScroll && targetOffset < getMinOffset()) {
+                willScroll = 0;
+            } else if (!enableEndlessScroll && targetOffset > getMaxOffset()) {
+                willScroll = (int) ((getMaxOffset() - offset) * getDistanceRatio());
+            }
+
+            realDx = willScroll / getDistanceRatio();
+
+            offset += realDx;
+
+            //re-calculate the rotate x,y of each items
+            for (int i = 0; i < getChildCount(); i++) {
+                View scrap = getChildAt(i);
+                float delta = propertyChangeWhenScroll(scrap) - realDx;
+                layoutScrap(scrap, delta);
+            }
+
+            layoutItems(recycler, state);
+
+            return willScroll;
+        } else {
+            return  super.scrollHorizontallyBy(dx, recycler, state);
         }
-
-        int willScroll = dx;
-
-        float realDx = dx / getDistanceRatio();
-        float targetOffset = offset + realDx;
-
-        //handle the boundary
-        if (!enableEndlessScroll && targetOffset < getMinOffset()) {
-            willScroll = 0;
-        } else if (!enableEndlessScroll && targetOffset > getMaxOffset()) {
-            willScroll = (int) ((getMaxOffset() - offset) * getDistanceRatio());
-        }
-
-        realDx = willScroll / getDistanceRatio();
-
-        offset += realDx;
-
-        //re-calculate the rotate x,y of each items
-        for (int i = 0; i < getChildCount(); i++) {
-            View scrap = getChildAt(i);
-            float delta = propertyChangeWhenScroll(scrap) - realDx;
-            layoutScrap(scrap, delta);
-        }
-
-        layoutItems(recycler, state);
-
-        return willScroll;
     }
 
     private void layoutItems(RecyclerView.Recycler recycler,
@@ -378,15 +497,28 @@ public abstract class ViewPagerLayoutManager extends RecyclerView.LayoutManager 
     }
 
     protected float maxRemoveOffset() {
-        return getHorizontalSpace() - startLeft;
+        if (this.orientation == VERTICAL_MODE) {
+            return getVerticalSpace() - startTop;
+        } else {
+            return getHorizontalSpace() - startLeft;
+        }
     }
 
     protected float minRemoveOffset() {
-        return -mDecoratedChildWidth - getPaddingLeft() - startLeft;
+        if (this.orientation == VERTICAL_MODE) {
+            return -mDecoratedChildHeight - getPaddingTop() - startTop;
+        } else {
+            return -mDecoratedChildWidth - getPaddingLeft() - startLeft;
+        }
+
     }
 
     protected float propertyChangeWhenScroll(View itemView) {
-        return itemView.getLeft() - startLeft;
+        if (this.orientation == VERTICAL_MODE) {
+            return itemView.getTop() - startTop;
+        } else {
+            return itemView.getLeft() - startLeft;
+        }
     }
 
     protected float getDistanceRatio() {
